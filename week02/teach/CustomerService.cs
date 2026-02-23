@@ -4,31 +4,60 @@
 /// </summary>
 public class CustomerService {
     public static void Run() {
-        // Example code to see what's in the customer service queue:
-        // var cs = new CustomerService(10);
-        // Console.WriteLine(cs);
 
-        // Test Cases
-
-        // Test 1
-        // Scenario: 
-        // Expected Result: 
+        // =========================
+        // Test 1: Add Customers
+        // Scenario: Add customers up to max size and try to exceed it.
+        // Expected Result: Should stop adding once max size is reached.
+        // =========================
         Console.WriteLine("Test 1");
 
-        // Defect(s) Found: 
+        var cs = new CustomerService(2);
+
+        cs.AddNewCustomer("Alice", "A1", "Login Issue");
+        cs.AddNewCustomer("Bob", "B2", "Password Reset");
+        cs.AddNewCustomer("Charlie", "C3", "Billing Question"); // Should not be added
+
+        Console.WriteLine(cs);
+
+        // Defect(s) Found (Original Code):
+        // - Queue allowed more than max size because it used > instead of >=
 
         Console.WriteLine("=================");
 
-        // Test 2
-        // Scenario: 
-        // Expected Result: 
+
+        // =========================
+        // Test 2: Serve Customers
+        // Scenario: Serve customers in FIFO order.
+        // Expected Result: Alice served first, then Bob.
+        // =========================
         Console.WriteLine("Test 2");
 
-        // Defect(s) Found: 
+        cs.ServeCustomer();  // Alice
+        cs.ServeCustomer();  // Bob
+        cs.ServeCustomer();  // Should say no customers
+
+        Console.WriteLine(cs);
+
+        // Defect(s) Found (Original Code):
+        // - Customer was removed before being displayed
+        // - Wrong customer printed
+        // - Exception thrown when only one customer existed
 
         Console.WriteLine("=================");
 
-        // Add more Test Cases As Needed Below
+
+        // =========================
+        // Test 3: Empty Queue
+        // Scenario: Serve from empty queue.
+        // Expected Result: Message saying no customers.
+        // =========================
+        Console.WriteLine("Test 3");
+
+        var cs2 = new CustomerService(3);
+        cs2.ServeCustomer();
+
+        Console.WriteLine("=================");
     }
 
     private readonly List<Customer> _queue = new();
@@ -43,7 +72,6 @@ public class CustomerService {
 
     /// <summary>
     /// Defines a Customer record for the service queue.
-    /// This is an inner class.  Its real name is CustomerService.Customer
     /// </summary>
     private class Customer {
         public Customer(string name, string accountId, string problem) {
@@ -57,50 +85,47 @@ public class CustomerService {
         private string Problem { get; }
 
         public override string ToString() {
-            return $"{Name} ({AccountId})  : {Problem}";
+            return $"{Name} ({AccountId}) : {Problem}";
         }
     }
 
     /// <summary>
-    /// Prompt the user for the customer and problem information.  Put the 
-    /// new record into the queue.
+    /// Add a new customer (direct method for testing).
     /// </summary>
-    private void AddNewCustomer() {
-        // Verify there is room in the service queue
-        if (_queue.Count > _maxSize) {
+    public void AddNewCustomer(string name, string accountId, string problem) {
+
+        // FIX #1: Correct capacity check
+        if (_queue.Count >= _maxSize) {
             Console.WriteLine("Maximum Number of Customers in Queue.");
             return;
         }
 
-        Console.Write("Customer Name: ");
-        var name = Console.ReadLine()!.Trim();
-        Console.Write("Account Id: ");
-        var accountId = Console.ReadLine()!.Trim();
-        Console.Write("Problem: ");
-        var problem = Console.ReadLine()!.Trim();
-
-        // Create the customer object and add it to the queue
         var customer = new Customer(name, accountId, problem);
         _queue.Add(customer);
     }
 
     /// <summary>
-    /// Dequeue the next customer and display the information.
+    /// Serve the next customer.
     /// </summary>
-    private void ServeCustomer() {
-        _queue.RemoveAt(0);
+    public void ServeCustomer() {
+
+        // FIX #2: Handle empty queue safely
+        if (_queue.Count == 0) {
+            Console.WriteLine("No customers in queue.");
+            return;
+        }
+
+        // FIX #3: Display before removing
         var customer = _queue[0];
-        Console.WriteLine(customer);
+        Console.WriteLine("Serving: " + customer);
+        _queue.RemoveAt(0);
     }
 
     /// <summary>
-    /// Support the WriteLine function to provide a string representation of the
-    /// customer service queue object. This is useful for debugging. If you have a 
-    /// CustomerService object called cs, then you run Console.WriteLine(cs) to
-    /// see the contents.
+    /// Display queue contents
     /// </summary>
-    /// <returns>A string representation of the queue</returns>
     public override string ToString() {
-        return $"[size={_queue.Count} max_size={_maxSize} => " + string.Join(", ", _queue) + "]";
+        return $"[size={_queue.Count} max_size={_maxSize} => " +
+               string.Join(", ", _queue) + "]";
     }
 }
